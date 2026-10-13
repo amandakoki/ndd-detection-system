@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const ROLES = [
   { value: "educator", label: "Educator" },
@@ -88,6 +89,7 @@ async function handleSubmit(e) {
       {err("form")}
 
       <button type="submit">Sign up</button>
+      <p>Already have an account? <Link to="/login">Log in</Link></p>
     </form>
   );
 }
