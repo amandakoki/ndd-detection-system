@@ -3,7 +3,7 @@ import Signup from "./Signup";
 import Login from "./Login";
 import VerifyEmail from "./VerifyEmail";
 import Dashboard from "./Dashboard";
-import ProtectedRoute from "./ProtectedRoute";
+import ProtectedRoute from "./protectedRoute";
 import { getSession, HOME } from "./auth";
 
 function Home() {
