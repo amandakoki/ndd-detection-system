@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { getSession, HOME } from "./auth";
+import { getSession, HOME } from "../auth";
 
 export default function ProtectedRoute({ role, children }) {
   const session = getSession();
