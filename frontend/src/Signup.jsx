@@ -43,7 +43,10 @@ export default function Signup() {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <h1>Create your account</h1>
+      <br /> <br />
+      
+      <h2>Create your account</h2>
+      
 
       <label>I am a…
         <select name="role" value={form.role} onChange={set}>
@@ -53,17 +56,25 @@ export default function Signup() {
       </label>
       {err("role")}
 
+      <br /> <br />
+
       <label>Full name <input name="name" value={form.name} onChange={set} /></label>
       {err("name")}
+
+      <br /> <br />
 
       <label>Email <input type="email" name="email" value={form.email} onChange={set} /></label>
       {err("email")}
 
+      <br /> <br />
       <label>Password <input type="password" name="password" value={form.password} onChange={set} /></label>
       {err("password")}
 
+      <br /> <br />
       <label>Confirm password <input type="password" name="confirm" value={form.confirm} onChange={set} /></label>
       {err("confirm")}
+
+      <br /> <br />
 
       <button type="submit">Sign up</button>
     </form>
