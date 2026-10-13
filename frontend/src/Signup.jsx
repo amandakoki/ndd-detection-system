@@ -85,6 +85,8 @@ async function handleSubmit(e) {
 
       <br /> <br />
 
+      {err("form")}
+
       <button type="submit">Sign up</button>
     </form>
   );
