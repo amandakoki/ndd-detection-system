@@ -132,22 +132,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# ---------------------------------------------------------------
+# Authentication project settings
+# ---------------------------------------------------------------
+from datetime import timedelta
 
 AUTH_USER_MODEL = "accounts.User"
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
-
-
-from datetime import timedelta
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -161,15 +156,32 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+# ---------------------------------------------------------------
+# Email verification settings
+# ---------------------------------------------------------------
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@localhost")
-
 FRONTEND_URL = "http://localhost:5173"
 EMAIL_VERIFICATION_MAX_AGE = 60 * 60 * 24  # links last 24 hours
+
+SMTP_USER = os.environ.get("SMTP_USER")
+
+if SMTP_USER:
+    # real emails: only used when SMTP_USER is set in api/.env
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": os.environ.get("SMTP_HOST", "smtp.gmail.com"),
+                "use_tls": True,
+                "username": SMTP_USER,
+                "password": os.environ["SMTP_PASSWORD"],
+            },
+        },
+    }
+else:
+    # development: emails are printed in the Django terminal
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
