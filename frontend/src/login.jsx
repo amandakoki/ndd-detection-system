@@ -6,6 +6,8 @@ import { HOME, saveSession } from "./auth";
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [needsVerify, setNeedsVerify] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -14,6 +16,8 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setInfo("");
+    setNeedsVerify(false);
     if (!form.email.trim() || !form.password) {
       setError("Enter your email and password.");
       return;
@@ -32,6 +36,7 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 403) setNeedsVerify(true);
         setError(
           res.status === 401
             ? "Incorrect email or password."
@@ -49,6 +54,25 @@ export default function Login() {
     }
   }
 
+  async function resend() {
+    setInfo("");
+    try {
+      const res = await fetch(`${API}/resend-verification/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      setInfo(
+        res.status === 429
+          ? "Too many requests. Please try again later."
+          : data.detail
+      );
+    } catch {
+      setInfo("Can't reach the server.");
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate>
       <h1>Log in</h1>
@@ -57,6 +81,12 @@ export default function Login() {
       <label>Password <input type="password" name="password" value={form.password} onChange={set} autoComplete="current-password" /></label>
 
       {error && <p style={{ color: "#b00020" }}>{error}</p>}
+      {needsVerify && (
+        <p>
+          <button type="button" onClick={resend}>Resend verification email</button>
+        </p>
+      )}
+      {info && <p>{info}</p>}
 
       <button type="submit" disabled={loading}>{loading ? "Logging in..." : "Log in"}</button>
       <p>No account yet? <Link to="/signup">Sign up</Link></p>

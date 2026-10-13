@@ -1,10 +1,11 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Signup from "./Signup";
-import Login from "./Login";
+import Login from "./Login"; <Route path="/verify-email" element={<VerifyEmail />} />
 import Dashboard from "./Dashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
 import VerifyEmail from "./VerifyEmail";
+
 
 function Home() {
   const session = getSession();
