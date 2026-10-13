@@ -1,11 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Signup from "./Signup";
-import Login from "./Login"; <Route path="/verify-email" element={<VerifyEmail />} />
+import Login from "./Login";
+import VerifyEmail from "./VerifyEmail";
 import Dashboard from "./Dashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
-import VerifyEmail from "./VerifyEmail";
-
 
 function Home() {
   const session = getSession();
@@ -25,6 +24,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/educator" element={page("educator", "Educator dashboard")} />
         <Route path="/learner" element={page("learner", "Learner dashboard")} />
         <Route path="/parent" element={page("parent", "Parent dashboard")} />
