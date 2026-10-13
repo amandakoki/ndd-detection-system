@@ -13,29 +13,38 @@ export default function Signup() {
 
   const set = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const local = {};
-    if (!form.role) local.role = "Please choose your role.";
-    if (form.name.trim().length < 2) local.name = "Please enter your name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) local.email = "Enter a valid email.";
-    if (form.password.length < 8) local.password = "At least 8 characters.";
-    if (form.password !== form.confirm) local.confirm = "Passwords don't match.";
-    setErrors(local);
-    if (Object.keys(local).length) return;
+async function handleSubmit(e) {
+  e.preventDefault();
+  const local = {};
+  if (!form.role) local.role = "Please choose your role.";
+  if (form.name.trim().length < 2) local.name = "Please enter your name.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) local.email = "Enter a valid email.";
+  if (form.password.length < 8) local.password = "At least 8 characters.";
+  if (form.password !== form.confirm) local.confirm = "Passwords don't match.";
+  setErrors(local);
+  if (Object.keys(local).length) return;
 
-    const res = await fetch("http://localhost:8000/api/auth/signup/", {
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/auth/signup/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        role: form.role, name: form.name.trim(),
-        email: form.email.trim().toLowerCase(), password: form.password,
+        role: form.role,
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
       }),
     });
     const data = await res.json();
-    if (!res.ok) return setErrors(data);       // DRF returns {field: [messages]}
+    if (!res.ok) {
+      setErrors(data);
+      return;
+    }
     setDone(true);
+  } catch (error) {
+    setErrors({ form: "Can't reach the server. Is Django running on port 8000?" });
   }
+}
 
   if (done) return <p>Account created! Check your email to verify your address.</p>;
 
