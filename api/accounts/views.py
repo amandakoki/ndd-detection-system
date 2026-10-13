@@ -20,3 +20,14 @@ class SignupView(APIView):
             {"detail": "Account created. Check your email to verify."},
             status=status.HTTP_201_CREATED,
         )
+
+class LoginView(TokenObtainPairView):
+    serializer_class = LoginSerializer
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        u = request.user
+        return Response({"id": u.id, "name": u.name, "email": u.email, "role": u.role})
