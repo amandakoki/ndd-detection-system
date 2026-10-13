@@ -28,4 +28,23 @@ class SignupSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
 
-    
+    class LoginSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["role"] = user.role
+        token["name"] = user.name
+        return token
+
+    def validate(self, attrs):
+        attrs["email"] = attrs["email"].strip().lower()
+        data = super().validate(attrs)  # checks email and password; wrong ones give a 401
+        if not self.user.email_verified:
+            raise PermissionDenied("Please verify your email before logging in.")
+        data["user"] = {
+            "id": self.user.id,
+            "name": self.user.name,
+            "email": self.user.email,
+            "role": self.user.role,
+        }
+        return data
