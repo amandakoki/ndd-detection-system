@@ -4,6 +4,7 @@ import Login from "./Login";
 import Dashboard from "./Dashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
+import VerifyEmail from "./VerifyEmail";
 
 function Home() {
   const session = getSession();
