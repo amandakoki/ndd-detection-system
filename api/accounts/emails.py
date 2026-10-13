@@ -18,6 +18,11 @@ def read_verification_token(token):
 def send_verification_email(user):
     token = make_verification_token(user)
     link = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+
+    if settings.DEBUG:
+        # development only: a clean copy of the link, without email encoding
+        print(f"\n[DEV] Verification link for {user.email}:\n{link}\n")
+
     send_mail(
         subject="Verify your email",
         message=(
