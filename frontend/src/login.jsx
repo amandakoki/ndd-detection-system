@@ -74,22 +74,40 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <h1>Log in</h1>
+    <main className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit} noValidate>
+        <h1>Welcome back</h1>
+        <p className="subtitle">Log in to your account.</p>
 
-      <label>Email <input type="email" name="email" value={form.email} onChange={set} autoComplete="email" /></label>
-      <label>Password <input type="password" name="password" value={form.password} onChange={set} autoComplete="current-password" /></label>
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" name="email" value={form.email} onChange={set} autoComplete="email" />
+        </div>
 
-      {error && <p style={{ color: "#b00020" }}>{error}</p>}
-      {needsVerify && (
-        <p>
-          <button type="button" onClick={resend}>Resend verification email</button>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" name="password" value={form.password} onChange={set} autoComplete="current-password" />
+        </div>
+
+        {error && <p className="alert" role="alert">{error}</p>}
+        {info && <p className="success">{info}</p>}
+
+        <button className="btn" type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Log in"}
+        </button>
+
+        {needsVerify && (
+          <p className="auth-footer">
+            <button type="button" className="btn-link" onClick={resend}>
+              Resend verification email
+            </button>
+          </p>
+        )}
+
+        <p className="auth-footer">
+          No account yet? <Link to="/signup">Sign up</Link>
         </p>
-      )}
-      {info && <p>{info}</p>}
-
-      <button type="submit" disabled={loading}>{loading ? "Logging in..." : "Log in"}</button>
-      <p>No account yet? <Link to="/signup">Sign up</Link></p>
-    </form>
+      </form>
+    </main>
   );
 }
