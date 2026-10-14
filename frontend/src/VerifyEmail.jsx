@@ -28,12 +28,16 @@ export default function VerifyEmail() {
   }, [token]);
 
   return (
-    <div>
-      <h1>Email verification</h1>
-      {state.status === "loading" && <p>Verifying your email...</p>}
-      {state.status === "success" && <p style={{ color: "green" }}>{state.message}</p>}
-      {state.status === "error" && <p style={{ color: "#b00020" }}>{state.message}</p>}
-      {state.status !== "loading" && <Link to="/login">Go to log in</Link>}
-    </div>
+    <main className="auth-page">
+      <div className="auth-card">
+        <h1>Email verification</h1>
+        {state.status === "loading" && <p className="subtitle">Verifying your email...</p>}
+        {state.status === "success" && <p className="success">{state.message}</p>}
+        {state.status === "error" && <p className="alert" role="alert">{state.message}</p>}
+        {state.status !== "loading" && (
+          <Link className="btn" to="/login">Go to log in</Link>
+        )}
+      </div>
+    </main>
   );
 }
