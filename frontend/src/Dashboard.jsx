@@ -6,17 +6,20 @@ export default function Dashboard({ title }) {
   const { user } = getSession();
 
   return (
-    <div>
-      <h1>{title}</h1>
-      <p>Welcome, {user.name} ({user.role}).</p>
-      <button
-        onClick={() => {
-          logout();
-          navigate("/login");
-        }}
-      >
-        Log out
-      </button>
-    </div>
+    <main className="auth-page">
+      <div className="auth-card">
+        <h1>{title}</h1>
+        <p className="subtitle">Welcome, {user.name} ({user.role}).</p>
+        <button
+          className="btn"
+          onClick={() => {
+            logout();
+            navigate("/login");
+          }}
+        >
+          Log out
+        </button>
+      </div>
+    </main>
   );
 }
