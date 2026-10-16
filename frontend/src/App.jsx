@@ -3,7 +3,8 @@ import Signup from "./Signup";
 import Login from "./Login";
 import VerifyEmail from "./VerifyEmail";
 import Dashboard from "./Dashboard";
-import ProtectedRoute from "./protectedRoute";
+import EducatorDashboard from "./EducatorDashboard";
+import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
 
 function Home() {
@@ -25,7 +26,14 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/educator" element={page("educator", "Educator dashboard")} />
+        <Route
+          path="/educator"
+          element={
+            <ProtectedRoute role="educator">
+              <EducatorDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/learner" element={page("learner", "Learner dashboard")} />
         <Route path="/parent" element={page("parent", "Parent dashboard")} />
         <Route path="/system-admin" element={page("admin", "System admin dashboard")} />
