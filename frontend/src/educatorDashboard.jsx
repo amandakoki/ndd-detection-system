@@ -106,6 +106,9 @@ export default function EducatorDashboard() {
   const [state, setState] = useState({ status: "loading", learners: [] });
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
+  const [newName, setNewName] = useState("");
+  const [addError, setAddError] = useState("");
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +151,52 @@ export default function EducatorDashboard() {
   function handleLogout() {
     logout();
     navigate("/login");
+  }
+
+  async function addLearner(e) {
+    e.preventDefault();
+    setAddError("");
+    const name = newName.trim();
+    if (name.length < 2) {
+      setAddError("Enter the learner's name.");
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const res = await fetch(`${API_ROOT}/educator/learners/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access}`,
+        },
+        body: JSON.stringify({ name }),
+      });
+      if (res.status === 401) {
+        logout();
+        navigate("/login");
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        setAddError(
+          [].concat(data.name ?? data.detail ?? "Could not add the learner.").join(" ")
+        );
+        return;
+      }
+      setState((prev) => ({
+        ...prev,
+        learners: [...prev.learners, data].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        ),
+      }));
+      setSelectedId(data.id);
+      setNewName("");
+    } catch {
+      setAddError("Can't reach the server. Is Django running?");
+    } finally {
+      setAdding(false);
+    }
   }
 
   const { learners } = state;
@@ -195,6 +244,24 @@ export default function EducatorDashboard() {
         <div className="ed-body">
           <aside className="ed-sidebar">
             <h2>My Class List</h2>
+
+            <form className="add-learner" onSubmit={addLearner} noValidate>
+              <label htmlFor="new-learner">Add a learner</label>
+              <div className="add-learner-row">
+                <input
+                  id="new-learner"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. first name and initial"
+                  maxLength={100}
+                />
+                <button className="btn" type="submit" disabled={adding}>
+                  {adding ? "..." : "Add"}
+                </button>
+              </div>
+              {addError && <p className="field-error" role="alert">{addError}</p>}
+            </form>
+
             {learners.length === 0 ? (
               <Empty>No learners in your class yet.</Empty>
             ) : (
