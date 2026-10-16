@@ -300,3 +300,41 @@
     grid-template-columns: 110px minmax(0, 1fr) 36px;
   }
 }
+
+/* ---------- add learner ---------- */
+.add-learner {
+  margin-bottom: 16px;
+}
+
+.add-learner label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.add-learner-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-learner input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.add-learner input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.add-learner .btn {
+  width: auto;
+  padding: 10px 16px;
+}
