@@ -19,9 +19,10 @@ def send_verification_email(user):
     token = make_verification_token(user)
     link = f"{settings.FRONTEND_URL}/verify-email?token={token}"
 
-    if settings.DEBUG:
-        # development only: a clean copy of the link, without email encoding
+    # development without real email: just print the link, nothing else
+    if settings.DEBUG and not getattr(settings, "SMTP_USER", None):
         print(f"\n[DEV] Verification link for {user.email}:\n{link}\n")
+        return
 
     send_mail(
         subject="Verify your email",
