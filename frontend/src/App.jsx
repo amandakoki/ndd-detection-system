@@ -3,7 +3,7 @@ import Signup from "./Signup";
 import Login from "./Login";
 import VerifyEmail from "./VerifyEmail";
 import Dashboard from "./Dashboard";
-import EducatorDashboard from "./EducatorDashboard";
+import EducatorDashboard from "./educatorDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
 
