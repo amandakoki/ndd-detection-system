@@ -149,7 +149,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_THROTTLE_RATES": {"resend": "10/hour"},
+        "DEFAULT_THROTTLE_RATES": {"resend": "10/hour", "link": "20/hour"},
 }
 
 SIMPLE_JWT = {
