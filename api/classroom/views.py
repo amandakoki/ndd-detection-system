@@ -1,26 +1,47 @@
+from django.db import transaction
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .models import Classification, Learner
-from .permissions import IsEducator
+from .permissions import IsEducator, IsGuardian, IsLearner
 from .serializers import LearnerCreateSerializer
 
-# Which risk levels count as "flagged" in the class list. Change here if needed.
+# Which risk levels count as "flagged" in the educator's class list.
 FLAGGED_RISKS = {Classification.Risk.HIGH, Classification.Risk.MEDIUM}
 
 
-def learner_payload(learner):
-    classifications = sorted(
+def latest_classification(learner):
+    items = sorted(
         learner.classifications.all(),
         key=lambda c: (c.classified_on, c.id),
         reverse=True,
     )
-    latest = classifications[0] if classifications else None
-    progress = sorted(
-        learner.progress_entries.all(), key=lambda p: (p.recorded_on, p.id)
-    )[-12:]  # the most recent 12 entries
+    return items[0] if items else None
 
+
+def progress_points(learner):
+    entries = sorted(
+        learner.progress_entries.all(), key=lambda p: (p.recorded_on, p.id)
+    )[-12:]  # the most recent 12
+    return [
+        {"label": p.recorded_on.strftime("%d %b"), "value": p.value}
+        for p in entries
+    ]
+
+
+def _weight(feature):
+    try:
+        return abs(float(feature.get("weight", 0)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+# ---------------------------------------------------------------- educator
+def learner_payload(learner):
+    latest = latest_classification(learner)
     return {
         "id": learner.id,
         "name": learner.name,
@@ -34,10 +55,11 @@ def learner_payload(learner):
             "support": latest.support,
             "features": latest.features,
         },
-        "progress": [
-            {"label": p.recorded_on.strftime("%d %b"), "value": p.value}
-            for p in progress
-        ],
+        "progress": progress_points(learner),
+        "learner_code": learner.learner_code,
+        "guardian_code": learner.guardian_code,
+        "learner_linked": learner.user_id is not None,
+        "guardian_count": len(learner.guardians.all()),
     }
 
 
@@ -47,7 +69,7 @@ class EducatorDashboardView(APIView):
     def get(self, request):
         learners = (
             Learner.objects.filter(educator=request.user)  # only their own class
-            .prefetch_related("classifications", "progress_entries")
+            .prefetch_related("classifications", "progress_entries", "guardians")
             .order_by("name")
         )
         return Response({"learners": [learner_payload(l) for l in learners]})
@@ -63,3 +85,138 @@ class LearnerCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         learner = serializer.save(educator=request.user)
         return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------- guardian
+def child_payload(learner):
+    latest = latest_classification(learner)
+    classification = None
+    if latest is not None:
+        features = [
+            f
+            for f in (latest.features or [])
+            if isinstance(f, dict) and f.get("name")
+        ]
+        features.sort(key=_weight, reverse=True)
+        classification = {
+            "risk": latest.risk,
+            "confidence": latest.confidence,
+            "classified_on": latest.classified_on.isoformat(),
+            "factors": [f["name"] for f in features[:3]],
+            "home_support": latest.home_support,
+        }
+    return {
+        "id": learner.id,
+        "name": learner.name,
+        "classification": classification,
+        "progress": progress_points(learner),
+    }
+
+
+class GuardianDashboardView(APIView):
+    permission_classes = [IsGuardian]
+
+    def get(self, request):
+        children = (
+            Learner.objects.filter(guardians=request.user)  # only their own children
+            .prefetch_related("classifications", "progress_entries")
+            .order_by("name")
+        )
+        return Response({"children": [child_payload(c) for c in children]})
+
+
+# ----------------------------------------------------------------- learner
+class LearnerDashboardView(APIView):
+    permission_classes = [IsLearner]
+
+    def get(self, request):
+        learner = Learner.objects.filter(user=request.user).first()
+        if learner is None:
+            return Response(
+                {"learner": None, "activities": [], "recommendation": None}
+            )
+
+        assignments = learner.assignments.select_related("activity").filter(
+            activity__is_active=True
+        )
+        recommendation = learner.recommendations.first()  # newest first
+
+        return Response(
+            {
+                "learner": {"id": learner.id, "name": learner.name},
+                "activities": [
+                    {
+                        "id": a.id,
+                        "title": a.activity.title,
+                        "description": a.activity.description,
+                        "url": a.activity.url,
+                        "completed_at": a.completed_at.isoformat()
+                        if a.completed_at
+                        else None,
+                    }
+                    for a in assignments
+                ],
+                "recommendation": None
+                if recommendation is None
+                else {
+                    "title": recommendation.title,
+                    "reason": recommendation.reason,
+                    "url": recommendation.url,
+                },
+            }
+        )
+
+
+# ------------------------------------------------- connecting with a code
+class LinkAccountView(APIView):
+    """A learner or guardian enters the code their educator gave them."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "link"
+
+    def post(self, request):
+        code = "".join(str(request.data.get("code", "")).split())
+        code = code.replace("-", "").upper()
+        user = request.user
+
+        if not code:
+            return Response(
+                {"detail": "Enter a code."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if user.role == "learner":
+            if Learner.objects.filter(user=user).exists():
+                return Response(
+                    {"detail": "Your account is already connected."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            with transaction.atomic():
+                learner = (
+                    Learner.objects.select_for_update()
+                    .filter(learner_code=code)
+                    .first()
+                )
+                if learner is None or learner.user_id is not None:
+                    return Response(
+                        {"detail": "That code isn't valid or has already been used."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                learner.user = user
+                learner.save(update_fields=["user"])
+            return Response({"detail": "Connected."})
+
+        if user.role == "parent":
+            learner = Learner.objects.filter(guardian_code=code).first()
+            if learner is None:
+                return Response(
+                    {"detail": "That code isn't valid."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            learner.guardians.add(user)
+            return Response({"detail": "Connected."})
+
+        return Response(
+            {"detail": "Only learner and guardian accounts can use a code."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
