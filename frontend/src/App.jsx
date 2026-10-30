@@ -3,7 +3,9 @@ import Signup from "./Signup";
 import Login from "./Login";
 import VerifyEmail from "./VerifyEmail";
 import Dashboard from "./Dashboard";
-import EducatorDashboard from "./educatorDashboard";
+import EducatorDashboard from "./EducatorDashboard";
+import GuardianDashboard from "./GuardianDashboard";
+import LearnerDashboard from "./LearnerDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
 
@@ -34,8 +36,22 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/learner" element={page("learner", "Learner dashboard")} />
-        <Route path="/parent" element={page("parent", "Parent dashboard")} />
+        <Route
+          path="/learner"
+          element={
+            <ProtectedRoute role="learner">
+              <LearnerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/parent"
+          element={
+            <ProtectedRoute role="parent">
+              <GuardianDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/system-admin" element={page("admin", "System admin dashboard")} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
