@@ -354,6 +354,30 @@ export default function EducatorDashboard() {
                 <Empty>No classifications recorded this term yet.</Empty>
               )}
             </section>
+                        {selected && (
+              <section className="panel wide">
+                <h2>Account Link Codes — {selected.name}</h2>
+                <p className="muted caption">
+                  Share these privately. Each person enters their code after signing up.
+                </p>
+                <div className="code-grid">
+                  <div>
+                    <span className="muted">Learner code (single use)</span>
+                    <code className="code">{selected.learner_code ?? "—"}</code>
+                    <span className="muted">
+                      {selected.learner_linked ? "Connected" : "Not connected yet"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="muted">Guardian code</span>
+                    <code className="code">{selected.guardian_code ?? "—"}</code>
+                    <span className="muted">
+                      {selected.guardian_count} guardian(s) connected
+                    </span>
+                  </div>
+                </div>
+              </section>
+            )}
           </main>
         </div>
       )}
