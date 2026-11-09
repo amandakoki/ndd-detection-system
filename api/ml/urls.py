@@ -1,4 +1,6 @@
-from django.urls import path
-from .views import ScreeningView
+from django.contrib import admin
+from django.urls import path, include          
 
-urlpatterns = [path("screen/", ScreeningView.as_view())]
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/ml/", include("ml.urls"), 
