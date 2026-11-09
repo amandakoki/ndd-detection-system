@@ -1,9 +1,9 @@
 import requests
 
 BASE = "http://127.0.0.1:8000"
-LOGIN_URL = BASE + "/api/login/"
-CREDS = {"email": "YOUR_EDUCATOR_EMAIL", "password": "YOUR_PASSWORD"}  # use "username" instead of "email" if that's what your login takes
-LEARNER_ID = 1  # id of one of this educator's learners (check Django admin)
+LOGIN_URL = BASE + "/api/auth/login/"
+CREDS = {"email": "akoki1293@gmail.com", "password": "password12345678"}  # use "username" instead of "email" if that's what your login takes
+LEARNER_ID = 2  # id of one of this educator's learners (check Django admin)
 
 login = requests.post(LOGIN_URL, json=CREDS)
 print("LOGIN:", login.status_code, login.text)
