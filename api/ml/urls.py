@@ -1,7 +1,6 @@
-from django.contrib import admin
-from django.urls import path, include          
+from django.urls import path
+from .views import ScreeningView
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/ml/", include("ml.urls")), 
+    path("screen/", ScreeningView.as_view()),
 ]
