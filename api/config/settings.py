@@ -187,5 +187,3 @@ else:
             "BACKEND": "django.core.mail.backends.console.EmailBackend",
         },
     }
-
-    NDD_MODEL_PATH = BASE_DIR.parent / "models" / "rf_dyslexia_agg_model.pkl"
