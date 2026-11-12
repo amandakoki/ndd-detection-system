@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { API_ROOT } from "./api";
 import { getSession, logout } from "./auth";
