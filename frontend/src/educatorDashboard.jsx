@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { API_ROOT } from "./api";
 import { getSession, logout } from "./auth";
 import "./educator.css";
