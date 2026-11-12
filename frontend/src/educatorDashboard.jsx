@@ -109,12 +109,16 @@ export default function EducatorDashboard() {
   const navigate = useNavigate();
   const { user, access } = getSession();
   const [state, setState] = useState({ status: "loading", learners: [] });
+  const [activities, setActivities] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const [newName, setNewName] = useState("");
   const [newAge, setNewAge] = useState("");
   const [addError, setAddError] = useState("");
   const [adding, setAdding] = useState(false);
+  const [pickedActivity, setPickedActivity] = useState("");
+  const [assignError, setAssignError] = useState("");
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +141,7 @@ export default function EducatorDashboard() {
         if (!res.ok) throw new Error("Request failed");
         const data = await res.json();
         if (!cancelled) {
+          setActivities(data.activities ?? []);
           setState({ status: "ready", learners: data.learners ?? [] });
         }
       })
@@ -208,10 +213,55 @@ export default function EducatorDashboard() {
       setSelectedId(data.id);
       setNewName("");
       setNewAge("");
-    } catch {
+    } catch (err) {
       setAddError("Can't reach the server. Is Django running?");
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function assignActivity(e) {
+    e.preventDefault();
+    setAssignError("");
+    if (!selected) return;
+    if (!pickedActivity) {
+      setAssignError("Choose an activity to assign.");
+      return;
+    }
+
+    setAssigning(true);
+    try {
+      const res = await fetch(
+        API_ROOT + "/educator/learners/" + selected.id + "/assignments/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + access,
+          },
+          body: JSON.stringify({ activity: Number(pickedActivity) }),
+        }
+      );
+      if (res.status === 401) {
+        logout();
+        navigate("/login");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAssignError(data.detail || "Could not assign the activity.");
+        return;
+      }
+      // replace this learner with the updated one from the server
+      setState((prev) => ({
+        ...prev,
+        learners: prev.learners.map((l) => (l.id === data.id ? data : l)),
+      }));
+      setPickedActivity("");
+    } catch (err) {
+      setAssignError("Can't reach the server. Is Django running?");
+    } finally {
+      setAssigning(false);
     }
   }
 
@@ -219,6 +269,11 @@ export default function EducatorDashboard() {
   const selected = learners.find((l) => l.id === selectedId) ?? learners[0] ?? null;
   const result = selected?.classification ?? null;
   const progress = selected?.progress ?? [];
+  const assignments = selected?.assignments ?? [];
+  const assignedIds = assignments.map((a) => a.activity_id);
+  const availableActivities = activities.filter(
+    (a) => assignedIds.indexOf(a.id) === -1
+  );
 
   const overview = RISK_LEVELS.map((label) => ({
     label,
@@ -301,7 +356,11 @@ export default function EducatorDashboard() {
                         "class-item" + (learner.id === selected?.id ? " active" : "")
                       }
                       aria-pressed={learner.id === selected?.id}
-                      onClick={() => setSelectedId(learner.id)}
+                      onClick={() => {
+                        setSelectedId(learner.id);
+                        setAssignError("");
+                        setPickedActivity("");
+                      }}
                     >
                       <span>{learner.name}</span>
                       {learner.flagged && <span className="flag">Flagged</span>}
@@ -386,6 +445,67 @@ export default function EducatorDashboard() {
                 <Empty>Not enough progress data yet.</Empty>
               )}
             </section>
+
+            {selected && (
+              <section className="panel wide">
+                <h2>Assigned Activities — {selected.name}</h2>
+                <p className="muted caption">
+                  Assign an activity, then check here when the learner has completed it.
+                </p>
+
+                {assignments.length === 0 ? (
+                  <Empty>No activities assigned yet.</Empty>
+                ) : (
+                  <ul className="assign-list">
+                    {assignments.map((a) => (
+                      <li key={a.id}>
+                        <span>{a.title}</span>
+                        <span
+                          className={
+                            "assign-status" + (a.completed_at ? " done" : "")
+                          }
+                        >
+                          {a.completed_at
+                            ? "Completed " + formatDate(a.completed_at)
+                            : "Not yet completed"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {activities.length === 0 ? (
+                  <p className="muted caption">
+                    No activities exist yet. Add them in the admin area first.
+                  </p>
+                ) : availableActivities.length === 0 ? (
+                  <p className="muted caption">
+                    Every available activity is already assigned to this learner.
+                  </p>
+                ) : (
+                  <form className="assign-row" onSubmit={assignActivity} noValidate>
+                    <select
+                      value={pickedActivity}
+                      onChange={(e) => setPickedActivity(e.target.value)}
+                      aria-label="Activity to assign"
+                    >
+                      <option value="">Choose an activity</option>
+                      {availableActivities.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.title}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="btn run-screening" type="submit" disabled={assigning}>
+                      {assigning ? "Assigning..." : "Assign"}
+                    </button>
+                  </form>
+                )}
+                {assignError && (
+                  <p className="field-error" role="alert">{assignError}</p>
+                )}
+              </section>
+            )}
 
             <section className="panel wide">
               <h2>Class-Wide Overview</h2>
