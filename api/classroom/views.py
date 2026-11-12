@@ -266,3 +266,24 @@ class EducatorScreeningView(APIView):
         except ScreeningError as exc:
             return Response({"detail": str(exc)}, status=exc.status_code)
         return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
+    
+    class GameLevelsView(APIView):
+    """Active levels from the admin's learning library, for the game."""
+
+    permission_classes = [IsLearner | IsEducator]
+
+    def get(self, request):
+        from adminpanel.models import Level
+
+        levels = []
+        for lv in Level.objects.filter(is_active=True):
+            items = lv.items or []
+            levels.append(
+                {
+                    "id": lv.id,
+                    "prompt": lv.prompt,
+                    "correct_items": [i["text"] for i in items if i.get("correct")],
+                    "other_items": [i["text"] for i in items if not i.get("correct")],
+                }
+            )
+        return Response({"levels": levels})
