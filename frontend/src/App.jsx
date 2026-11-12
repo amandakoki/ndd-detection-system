@@ -2,10 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Signup from "./Signup";
 import Login from "./Login";
 import VerifyEmail from "./VerifyEmail";
-import Dashboard from "./Dashboard";
 import EducatorDashboard from "./EducatorDashboard";
 import GuardianDashboard from "./GuardianDashboard";
 import LearnerDashboard from "./LearnerDashboard";
+import AdminDashboard from "./admin/AdminDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
 
@@ -13,12 +13,6 @@ function Home() {
   const session = getSession();
   return <Navigate to={session ? HOME[session.user.role] : "/login"} replace />;
 }
-
-const page = (role, title) => (
-  <ProtectedRoute role={role}>
-    <Dashboard title={title} />
-  </ProtectedRoute>
-);
 
 export default function App() {
   return (
@@ -52,7 +46,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/system-admin" element={page("admin", "System admin dashboard")} />
+        <Route
+          path="/system-admin"
+          element={
+            <ProtectedRoute role="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
