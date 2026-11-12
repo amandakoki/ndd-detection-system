@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AssignActivityView,
+    EducatorActivityView,
     EducatorDashboardView,
     EducatorScreeningView,
     GameLevelsView,
@@ -17,6 +18,7 @@ urlpatterns = [
     path("educator/learners/", LearnerCreateView.as_view()),
     path("educator/learners/<int:pk>/screenings/", EducatorScreeningView.as_view()),
     path("educator/learners/<int:pk>/assignments/", AssignActivityView.as_view()),
+    path("educator/activities/", EducatorActivityView.as_view()),
     path("guardian/dashboard/", GuardianDashboardView.as_view()),
     path("learner/dashboard/", LearnerDashboardView.as_view()),
     path("learner/screenings/", LearnerScreeningView.as_view()),
