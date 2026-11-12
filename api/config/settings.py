@@ -151,8 +151,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-        "DEFAULT_THROTTLE_RATES": {"resend": "10/hour", "link": "20/hour"},
-}
+    "DEFAULT_THROTTLE_RATES": {"resend": "10/hour", "link": "20/hour", "screening": "60/hour"},}
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
