@@ -116,9 +116,20 @@ export default function EducatorDashboard() {
   const [newAge, setNewAge] = useState("");
   const [addError, setAddError] = useState("");
   const [adding, setAdding] = useState(false);
+
+  // assigning an activity
   const [pickedActivity, setPickedActivity] = useState("");
   const [assignError, setAssignError] = useState("");
   const [assigning, setAssigning] = useState(false);
+
+  // creating an activity
+  const [showForm, setShowForm] = useState(false);
+  const [actTitle, setActTitle] = useState("");
+  const [actDescription, setActDescription] = useState("");
+  const [actKind, setActKind] = useState("game");
+  const [actUrl, setActUrl] = useState("");
+  const [actError, setActError] = useState("");
+  const [creatingActivity, setCreatingActivity] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,6 +231,70 @@ export default function EducatorDashboard() {
     }
   }
 
+  async function createActivity(e) {
+    e.preventDefault();
+    setActError("");
+    if (actTitle.trim().length < 2) {
+      setActError("Enter a title for the activity.");
+      return;
+    }
+    if (actKind === "link" && !actUrl.trim()) {
+      setActError("Enter the link to the content.");
+      return;
+    }
+
+    setCreatingActivity(true);
+    try {
+      const res = await fetch(API_ROOT + "/educator/activities/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + access,
+        },
+        body: JSON.stringify({
+          title: actTitle.trim(),
+          description: actDescription.trim(),
+          kind: actKind,
+          url: actKind === "link" ? actUrl.trim() : "",
+        }),
+      });
+      if (res.status === 401) {
+        logout();
+        navigate("/login");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setActError(
+          []
+            .concat(
+              data.title ??
+                data.url ??
+                data.kind ??
+                data.non_field_errors ??
+                data.detail ??
+                "Could not create the activity."
+            )
+            .join(" ")
+        );
+        return;
+      }
+      setActivities((prev) =>
+        [...prev, data].sort((a, b) => a.title.localeCompare(b.title))
+      );
+      setPickedActivity(String(data.id)); // ready to assign
+      setActTitle("");
+      setActDescription("");
+      setActKind("game");
+      setActUrl("");
+      setShowForm(false);
+    } catch (err) {
+      setActError("Can't reach the server. Is Django running?");
+    } finally {
+      setCreatingActivity(false);
+    }
+  }
+
   async function assignActivity(e) {
     e.preventDefault();
     setAssignError("");
@@ -274,6 +349,7 @@ export default function EducatorDashboard() {
   const availableActivities = activities.filter(
     (a) => assignedIds.indexOf(a.id) === -1
   );
+  const formOpen = showForm || activities.length === 0;
 
   const overview = RISK_LEVELS.map((label) => ({
     label,
@@ -450,7 +526,7 @@ export default function EducatorDashboard() {
               <section className="panel wide">
                 <h2>Assigned Activities — {selected.name}</h2>
                 <p className="muted caption">
-                  Assign an activity, then check here when the learner has completed it.
+                  Create an activity, assign it, then check here when the learner has completed it.
                 </p>
 
                 {assignments.length === 0 ? (
@@ -474,15 +550,7 @@ export default function EducatorDashboard() {
                   </ul>
                 )}
 
-                {activities.length === 0 ? (
-                  <p className="muted caption">
-                    No activities exist yet. Add them in the admin area first.
-                  </p>
-                ) : availableActivities.length === 0 ? (
-                  <p className="muted caption">
-                    Every available activity is already assigned to this learner.
-                  </p>
-                ) : (
+                {availableActivities.length > 0 && (
                   <form className="assign-row" onSubmit={assignActivity} noValidate>
                     <select
                       value={pickedActivity}
@@ -501,8 +569,104 @@ export default function EducatorDashboard() {
                     </button>
                   </form>
                 )}
+                {availableActivities.length === 0 && activities.length > 0 && (
+                  <p className="muted caption">
+                    Every activity you have is already assigned to this learner.
+                  </p>
+                )}
                 {assignError && (
                   <p className="field-error" role="alert">{assignError}</p>
+                )}
+
+                {!formOpen && (
+                  <button
+                    type="button"
+                    className="btn-link"
+                    onClick={() => setShowForm(true)}
+                  >
+                    + Create a new activity
+                  </button>
+                )}
+
+                {formOpen && (
+                  <form className="activity-form" onSubmit={createActivity} noValidate>
+                    <h3>Create a new activity</h3>
+                    {activities.length === 0 && (
+                      <p className="muted caption">
+                        You haven't created any activities yet. Create one, then assign it.
+                      </p>
+                    )}
+                    <div className="field">
+                      <label htmlFor="act-title">Title</label>
+                      <input
+                        id="act-title"
+                        value={actTitle}
+                        onChange={(e) => setActTitle(e.target.value)}
+                        placeholder="e.g. Letter Matching"
+                        maxLength={150}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="act-description">Description (optional)</label>
+                      <input
+                        id="act-description"
+                        value={actDescription}
+                        onChange={(e) => setActDescription(e.target.value)}
+                        placeholder="What the learner will do"
+                        maxLength={1000}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="act-kind">Type</label>
+                      <select
+                        id="act-kind"
+                        value={actKind}
+                        onChange={(e) => setActKind(e.target.value)}
+                      >
+                        <option value="game">Letter Matching game (screening)</option>
+                        <option value="link">Link to other content</option>
+                      </select>
+                    </div>
+                    {actKind === "link" && (
+                      <div className="field">
+                        <label htmlFor="act-url">Link</label>
+                        <input
+                          id="act-url"
+                          value={actUrl}
+                          onChange={(e) => setActUrl(e.target.value)}
+                          placeholder="https://..."
+                        />
+                        <p className="hint">
+                          Opens in a new tab. Link activities aren't marked completed
+                          automatically.
+                        </p>
+                      </div>
+                    )}
+                    {actError && (
+                      <p className="field-error" role="alert">{actError}</p>
+                    )}
+                    <div className="assign-row">
+                      <button
+                        className="btn run-screening"
+                        type="submit"
+                        disabled={creatingActivity}
+                      >
+                        {creatingActivity ? "Creating..." : "Create activity"}
+                      </button>
+                      {activities.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-link"
+                          onClick={() => {
+                            setShowForm(false);
+                            setActError("");
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
                 )}
               </section>
             )}
