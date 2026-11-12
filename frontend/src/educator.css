@@ -371,3 +371,32 @@
 .add-learner .age-input {
   flex: 0 0 76px;
 }
+
+/* ---------- create activity form ---------- */
+.activity-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eef0f3;
+}
+
+.activity-form h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.activity-form input,
+.activity-form select {
+  width: 100%;
+  padding: 9px 12px;
+  font: inherit;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.activity-form .assign-row {
+  margin-top: 4px;
+}
