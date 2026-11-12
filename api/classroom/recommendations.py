@@ -1,7 +1,6 @@
 """Suggestions shown on the dashboards after a screening.
 
-These are placeholders. Have a qualified specialist review the wording
-before the system is used with real children.
+Have a qualified specialist review the wording before the system is used with real children.
 """
 
 # For the educator
