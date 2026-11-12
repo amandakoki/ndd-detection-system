@@ -8,6 +8,7 @@ import LearnerDashboard from "./LearnerDashboard";
 import AdminDashboard from "./admin/AdminDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import { getSession, HOME } from "./auth";
+import ScreeningGame from "./game/ScreeningGame";
 
 function Home() {
   const session = getSession();
