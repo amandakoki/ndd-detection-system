@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -10,10 +11,17 @@ from rest_framework.views import APIView
 from .models import Activity, Classification, Learner
 from .permissions import IsEducator, IsGuardian, IsLearner
 from .screening import ScreeningError, run_screening
-from .serializers import LearnerCreateSerializer, ScreeningSerializer
+from .serializers import (
+    ActivityCreateSerializer,
+    LearnerCreateSerializer,
+    ScreeningSerializer,
+)
 
 # Which risk levels count as "flagged" in the educator's class list.
 FLAGGED_RISKS = {Classification.Risk.HIGH, Classification.Risk.MEDIUM}
+
+# Where the built-in Letter Matching game lives in the app.
+GAME_URL = "/learner/play"
 
 
 def latest_classification(learner):
@@ -40,6 +48,21 @@ def _weight(feature):
         return abs(float(feature.get("weight", 0)))
     except (TypeError, ValueError):
         return 0.0
+
+
+def educator_activities(user):
+    """Activities an educator can see and assign: their own, plus any shared ones."""
+    return Activity.objects.filter(is_active=True).filter(
+        Q(created_by=user) | Q(created_by__isnull=True)
+    )
+
+
+def activity_payload(activity):
+    return {
+        "id": activity.id,
+        "title": activity.title,
+        "description": activity.description,
+    }
 
 
 # ---------------------------------------------------------------- educator
@@ -92,14 +115,11 @@ class EducatorDashboardView(APIView):
             )
             .order_by("name")
         )
-        activities = Activity.objects.filter(is_active=True).order_by("title")
+        activities = educator_activities(request.user).order_by("title")
         return Response(
             {
                 "learners": [learner_payload(l) for l in learners],
-                "activities": [
-                    {"id": a.id, "title": a.title, "description": a.description}
-                    for a in activities
-                ],
+                "activities": [activity_payload(a) for a in activities],
             }
         )
 
@@ -116,8 +136,30 @@ class LearnerCreateView(APIView):
         return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
 
 
+class EducatorActivityView(APIView):
+    """An educator creates an activity of their own."""
+
+    permission_classes = [IsEducator]
+
+    def post(self, request):
+        serializer = ActivityCreateSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        url = GAME_URL if data["kind"] == "game" else data["url"]
+        activity = Activity.objects.create(
+            title=data["title"],
+            description=data.get("description", ""),
+            url=url,
+            created_by=request.user,
+        )
+        return Response(activity_payload(activity), status=status.HTTP_201_CREATED)
+
+
 class AssignActivityView(APIView):
-    """An educator assigns an activity to one of their own learners."""
+    """An educator assigns one of their activities to one of their own learners."""
 
     permission_classes = [IsEducator]
 
@@ -130,7 +172,7 @@ class AssignActivityView(APIView):
                 {"detail": "Choose an activity to assign."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        activity = get_object_or_404(Activity, pk=activity_id, is_active=True)
+        activity = get_object_or_404(educator_activities(request.user), pk=activity_id)
 
         assignment, created = learner.assignments.get_or_create(activity=activity)
         if not created and assignment.completed_at is not None:
