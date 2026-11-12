@@ -1,12 +1,13 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .models import Classification, Learner
+from .models import Activity, Classification, Learner
 from .permissions import IsEducator, IsGuardian, IsLearner
 from .screening import ScreeningError, run_screening
 from .serializers import LearnerCreateSerializer, ScreeningSerializer
@@ -58,6 +59,18 @@ def learner_payload(learner):
             "features": latest.features,
         },
         "progress": progress_points(learner),
+        "assignments": [
+            {
+                "id": a.id,
+                "activity_id": a.activity_id,
+                "title": a.activity.title,
+                "assigned_at": a.assigned_at.isoformat(),
+                "completed_at": a.completed_at.isoformat()
+                if a.completed_at
+                else None,
+            }
+            for a in learner.assignments.all()
+        ],
         "learner_code": learner.learner_code,
         "guardian_code": learner.guardian_code,
         "learner_linked": learner.user_id is not None,
@@ -71,10 +84,24 @@ class EducatorDashboardView(APIView):
     def get(self, request):
         learners = (
             Learner.objects.filter(educator=request.user)  # only their own class
-            .prefetch_related("classifications", "progress_entries", "guardians")
+            .prefetch_related(
+                "classifications",
+                "progress_entries",
+                "guardians",
+                "assignments__activity",
+            )
             .order_by("name")
         )
-        return Response({"learners": [learner_payload(l) for l in learners]})
+        activities = Activity.objects.filter(is_active=True).order_by("title")
+        return Response(
+            {
+                "learners": [learner_payload(l) for l in learners],
+                "activities": [
+                    {"id": a.id, "title": a.title, "description": a.description}
+                    for a in activities
+                ],
+            }
+        )
 
 
 class LearnerCreateView(APIView):
@@ -87,6 +114,34 @@ class LearnerCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         learner = serializer.save(educator=request.user)
         return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
+
+
+class AssignActivityView(APIView):
+    """An educator assigns an activity to one of their own learners."""
+
+    permission_classes = [IsEducator]
+
+    def post(self, request, pk):
+        learner = get_object_or_404(Learner, pk=pk, educator=request.user)
+        try:
+            activity_id = int(request.data.get("activity"))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Choose an activity to assign."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        activity = get_object_or_404(Activity, pk=activity_id, is_active=True)
+
+        assignment, created = learner.assignments.get_or_create(activity=activity)
+        if not created and assignment.completed_at is not None:
+            # assigning it again lets the learner play it again
+            assignment.completed_at = None
+            assignment.save(update_fields=["completed_at"])
+
+        return Response(
+            learner_payload(learner),
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 # ---------------------------------------------------------------- guardian
@@ -223,7 +278,8 @@ class LinkAccountView(APIView):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    # ------------------------------------------------------------- screenings
+
+# ------------------------------------------------------------- screenings
 class LearnerScreeningView(APIView):
     """A learner's own game session sends its log here.
     The child never sees the result, only a confirmation."""
@@ -246,6 +302,14 @@ class LearnerScreeningView(APIView):
             run_screening(learner, levels)
         except ScreeningError as exc:
             return Response({"detail": str(exc)}, status=exc.status_code)
+
+        # mark the assignment this session belonged to as completed
+        assignment_id = serializer.validated_data.get("assignment")
+        if assignment_id:
+            learner.assignments.filter(
+                pk=assignment_id, completed_at__isnull=True
+            ).update(completed_at=timezone.now())
+
         return Response({"detail": "Screening saved."}, status=status.HTTP_201_CREATED)
 
 
@@ -266,16 +330,13 @@ class EducatorScreeningView(APIView):
         except ScreeningError as exc:
             return Response({"detail": str(exc)}, status=exc.status_code)
         return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
-    
-    
+
 
 # ------------------------------------------------------------- game levels
 class GameLevelsView(APIView):
     """Active levels from the admin's learning library, for the game."""
 
     def get_permissions(self):
-        from rest_framework.permissions import IsAuthenticated
-
         return [IsAuthenticated()]
 
     def get(self, request):
