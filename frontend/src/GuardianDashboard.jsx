@@ -107,8 +107,9 @@ export default function GuardianDashboard() {
                       {result.risk}
                     </span>
                   </p>
-                  <p className="result-line">Confidence Score: {result.confidence}%</p>
+                  <p className="result-line">Screening score: {result.confidence} out of 100</p>
                   <p className="muted">Checked on: {formatDate(result.classified_on)}</p>
+                  <p className="muted">This is a screening indication, not a diagnosis.</p>
                 </>
               ) : (
                 <p className="empty">No result for your child yet.</p>
