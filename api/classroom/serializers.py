@@ -40,16 +40,16 @@ class LevelResultSerializer(serializers.Serializer):
 
 class ScreeningSerializer(serializers.Serializer):
     levels = LevelResultSerializer(many=True)
+    # optional: the assignment this game session belongs to
+    assignment = serializers.IntegerField(required=False)
 
     def validate_levels(self, value):
         if len(value) < MIN_LEVELS:
             raise serializers.ValidationError(
-                f"At least {MIN_LEVELS} levels are needed to score a child."
+                "At least " + str(MIN_LEVELS) + " levels are needed to score a child."
             )
         if len(value) > MAX_LEVELS:
             raise serializers.ValidationError(
-                f"No more than {MAX_LEVELS} levels can be submitted at once."
+                "No more than " + str(MAX_LEVELS) + " levels can be submitted at once."
             )
         return value
-
-    
