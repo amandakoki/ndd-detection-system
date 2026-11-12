@@ -8,7 +8,8 @@ from rest_framework.views import APIView
 
 from .models import Classification, Learner
 from .permissions import IsEducator, IsGuardian, IsLearner
-from .serializers import LearnerCreateSerializer
+from .screening import ScreeningError, run_screening
+from .serializers import LearnerCreateSerializer, ScreeningSerializer
 
 # Which risk levels count as "flagged" in the educator's class list.
 FLAGGED_RISKS = {Classification.Risk.HIGH, Classification.Risk.MEDIUM}
