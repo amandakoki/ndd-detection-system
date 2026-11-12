@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { authFetch } from "../api";
 import { logout } from "../auth";
 import AppHeader from "../AppHeader";
@@ -9,18 +9,19 @@ import "../educator.css";
 import "../portal.css";
 import "./game.css";
 
-const MIN_LEVELS = 6;      // the server refuses fewer than this
-const TOTAL_LEVELS = 12;   // library levels are topped up with built-in ones to reach this
+const TOTAL_LEVELS = 12; // library levels are topped up with built-in ones to reach this
 
 /**
  * Two ways in:
- *   /learner/play                a learner plays; log goes to /learner/screenings/
- *   /educator/screen/:learnerId  an educator runs it for one of their learners
+ *   /learner/play?assignment=ID   a learner plays; log goes to /learner/screenings/
+ *   /educator/screen/:learnerId   an educator runs it for one of their learners
  * The child never sees a result. The dashboards show it.
  */
 export default function ScreeningGame() {
   const navigate = useNavigate();
   const { learnerId } = useParams();
+  const [searchParams] = useSearchParams();
+  const assignmentId = Number(searchParams.get("assignment")) || null;
   const isEducator = Boolean(learnerId);
 
   const [stage, setStage] = useState("loading"); // loading | intro | playing | saving | done | error
@@ -50,14 +51,14 @@ export default function ScreeningGame() {
               (l) => l.tiles.some((t) => t.correct) && l.tiles.some((t) => !t.correct)
             );
         }
-      } catch {
+      } catch (err) {
         /* fall back to the built-in levels below */
       }
       if (cancelled) return;
 
       const missing = Math.max(0, TOTAL_LEVELS - library.length);
       setUsedFallback(library.length < TOTAL_LEVELS);
-      setLevels([...library, ...buildDefaultLevels(missing)]);
+      setLevels(library.concat(buildDefaultLevels(missing)));
       setStage("intro");
     }
 
@@ -72,11 +73,14 @@ export default function ScreeningGame() {
     setError("");
     try {
       const path = isEducator
-        ? `/educator/learners/${learnerId}/screenings/`
+        ? "/educator/learners/" + learnerId + "/screenings/"
         : "/learner/screenings/";
+      const body = { levels: finalLog };
+      if (!isEducator && assignmentId) body.assignment = assignmentId;
+
       const res = await authFetch(path, {
         method: "POST",
-        body: JSON.stringify({ levels: finalLog }),
+        body: JSON.stringify(body),
       });
       if (res.status === 401) {
         logout();
@@ -92,14 +96,14 @@ export default function ScreeningGame() {
         return;
       }
       setStage("done");
-    } catch {
+    } catch (err) {
       setError("Can't reach the server. Is Django running?");
       setStage("error");
     }
   }
 
   function handleLevelComplete(result) {
-    const newLog = [...log, result];
+    const newLog = log.concat([result]);
     setLog(newLog);
     if (index + 1 < levels.length) {
       setIndex(index + 1);
@@ -156,13 +160,13 @@ export default function ScreeningGame() {
                 <div className="game-bar">
                   <div
                     className="game-bar-fill"
-                    style={{ width: `${(index / levels.length) * 100}%` }}
+                    style={{ width: (index / levels.length) * 100 + "%" }}
                   />
                 </div>
               </div>
               {/* key gives every level fresh tiles and counters */}
               <LevelPlay
-                key={levels[index].id + index}
+                key={levels[index].id + "-" + index}
                 level={levels[index]}
                 onComplete={handleLevelComplete}
               />
