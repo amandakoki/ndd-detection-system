@@ -22,6 +22,12 @@ class Learner(models.Model):
         limit_choices_to={"role": "educator"},
     )
     name = models.CharField(max_length=100)
+    age = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(AGE_MIN), MaxValueValidator(AGE_MAX)],
+        help_text="Age in years. Needed to score a screening.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     # the learner's own account, once they connect with their code
