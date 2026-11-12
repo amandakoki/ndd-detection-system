@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { authFetch } from "./api";
 import { logout } from "./auth";
 import { formatDate } from "./format";
@@ -8,7 +8,20 @@ import LinkCodeForm from "./LinkCodeForm";
 import "./educator.css";
 import "./portal.css";
 
-function ActionButton({ url, children }) {
+// If the activity's address points at this app's learner pages, open it inside the app.
+function toInternalPath(url) {
+  try {
+    const u = new URL(url, window.location.origin);
+    if (u.origin === window.location.origin || u.pathname.indexOf("/learner/") === 0) {
+      return u.pathname + u.search;
+    }
+  } catch (err) {
+    /* not a valid address */
+  }
+  return null;
+}
+
+function ActionButton({ url, assignmentId, children }) {
   if (!url) {
     return (
       <button type="button" className="btn-outline" disabled title="Not available yet">
@@ -16,6 +29,20 @@ function ActionButton({ url, children }) {
       </button>
     );
   }
+
+  const internal = toInternalPath(url);
+  if (internal) {
+    const separator = internal.indexOf("?") === -1 ? "?" : "&";
+    const to = assignmentId
+      ? internal + separator + "assignment=" + assignmentId
+      : internal;
+    return (
+      <Link className="btn-outline" to={to}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <a className="btn-outline" href={url} target="_blank" rel="noopener noreferrer">
       {children}
@@ -114,11 +141,13 @@ export default function LearnerDashboard() {
                         <strong>{a.title}</strong>
                         <p className="muted">
                           {a.completed_at
-                            ? `Completed on ${formatDate(a.completed_at)}`
+                            ? "Completed on " + formatDate(a.completed_at)
                             : "Not yet completed"}
                         </p>
                       </div>
-                      <ActionButton url={a.url}>Start</ActionButton>
+                      <ActionButton url={a.url} assignmentId={a.id}>
+                        {a.completed_at ? "Play again" : "Start"}
+                      </ActionButton>
                     </li>
                   ))}
                 </ul>
