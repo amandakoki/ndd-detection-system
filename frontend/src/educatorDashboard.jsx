@@ -5,6 +5,8 @@ import { getSession, logout } from "./auth";
 import "./educator.css";
 
 const RISK_LEVELS = ["High", "Medium", "Low"];
+const AGE_MIN = 4; // keep in step with AGE_MIN in classroom/models.py
+const AGE_MAX = 18;
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -28,7 +30,10 @@ function FeatureBars({ items }) {
     <ul className="hbars">
       {items.map((item) => (
         <li key={item.name}>
-          <span className="hbar-label">{item.name}</span>
+          <span className="hbar-label">
+            {item.effect === "raises" ? "↑ " : item.effect === "lowers" ? "↓ " : ""}
+            {item.name}
+          </span>
           <span className="hbar-track">
             <span
               className="hbar-fill"
@@ -107,6 +112,7 @@ export default function EducatorDashboard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const [newName, setNewName] = useState("");
+  const [newAge, setNewAge] = useState("");
   const [addError, setAddError] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -157,8 +163,13 @@ export default function EducatorDashboard() {
     e.preventDefault();
     setAddError("");
     const name = newName.trim();
+    const age = Number(newAge);
     if (name.length < 2) {
       setAddError("Enter the learner's name.");
+      return;
+    }
+    if (!Number.isInteger(age) || age < AGE_MIN || age > AGE_MAX) {
+      setAddError(`Enter the learner's age (${AGE_MIN} to ${AGE_MAX}).`);
       return;
     }
 
@@ -170,7 +181,7 @@ export default function EducatorDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${access}`,
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, age }),
       });
       if (res.status === 401) {
         logout();
@@ -180,7 +191,7 @@ export default function EducatorDashboard() {
       const data = await res.json();
       if (!res.ok) {
         setAddError(
-          [].concat(data.name ?? data.detail ?? "Could not add the learner.").join(" ")
+          [].concat(data.name ?? data.age ?? data.detail ?? "Could not add the learner.").join(" ")
         );
         return;
       }
@@ -192,6 +203,7 @@ export default function EducatorDashboard() {
       }));
       setSelectedId(data.id);
       setNewName("");
+      setNewAge("");
     } catch {
       setAddError("Can't reach the server. Is Django running?");
     } finally {
@@ -252,8 +264,19 @@ export default function EducatorDashboard() {
                   id="new-learner"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. first name and initial"
+                  placeholder="First name and initial"
                   maxLength={100}
+                />
+                <input
+                  id="new-age"
+                  className="age-input"
+                  type="number"
+                  min={AGE_MIN}
+                  max={AGE_MAX}
+                  value={newAge}
+                  onChange={(e) => setNewAge(e.target.value)}
+                  placeholder="Age"
+                  aria-label="Age in years"
                 />
                 <button className="btn" type="submit" disabled={adding}>
                   {adding ? "..." : "Add"}
@@ -298,8 +321,9 @@ export default function EducatorDashboard() {
                       {result.risk}
                     </span>
                   </p>
-                  <p className="result-line">Confidence Score: {result.confidence}%</p>
+                  <p className="result-line">Screening score: {result.confidence} out of 100</p>
                   <p className="muted">Classified: {formatDate(result.classified_on)}</p>
+                  <p className="muted">A screening indication, not a diagnosis.</p>
                 </>
               )}
             </section>
@@ -321,7 +345,9 @@ export default function EducatorDashboard() {
               <h2>XAI Explanation</h2>
               {result?.features?.length ? (
                 <>
-                  <p className="muted caption">Top contributing features</p>
+                  <p className="muted caption">
+                    Top contributing features (↑ raises the score, ↓ lowers it)
+                  </p>
                   <FeatureBars items={result.features} />
                 </>
               ) : (
@@ -354,7 +380,8 @@ export default function EducatorDashboard() {
                 <Empty>No classifications recorded this term yet.</Empty>
               )}
             </section>
-                        {selected && (
+
+            {selected && (
               <section className="panel wide">
                 <h2>Account Link Codes — {selected.name}</h2>
                 <p className="muted caption">
