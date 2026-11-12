@@ -1,6 +1,17 @@
 from django.urls import path
-from .views import ScreeningView
+
+from .views import (
+    LevelDetailView,
+    LevelListCreateView,
+    OverviewView,
+    UserActionView,
+    UserListCreateView,
+)
 
 urlpatterns = [
-    path("screen/", ScreeningView.as_view()),
+    path("overview/", OverviewView.as_view()),
+    path("users/", UserListCreateView.as_view()),
+    path("users/<int:pk>/action/", UserActionView.as_view()),
+    path("levels/", LevelListCreateView.as_view()),
+    path("levels/<int:pk>/", LevelDetailView.as_view()),
 ]
