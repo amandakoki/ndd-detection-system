@@ -6,6 +6,8 @@ from django.db import models
 from django.utils import timezone
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no look-alike characters
+AGE_MIN = 4   # adjust to match the ages in your training data
+AGE_MAX = 18
 
 
 def generate_code():
