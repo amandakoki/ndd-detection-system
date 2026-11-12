@@ -366,3 +366,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- add learner: age box ---------- */
+.add-learner .age-input {
+  flex: 0 0 76px;
+}
