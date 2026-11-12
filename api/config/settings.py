@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "accounts",
     "classroom",
     "ml",
+    "adminpanel",
 ]
 
 MIDDLEWARE = [
