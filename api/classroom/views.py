@@ -267,13 +267,22 @@ class EducatorScreeningView(APIView):
             return Response({"detail": str(exc)}, status=exc.status_code)
         return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
     
-    class GameLevelsView(APIView):
+    
+
+# ------------------------------------------------------------- game levels
+class GameLevelsView(APIView):
     """Active levels from the admin's learning library, for the game."""
 
-    permission_classes = [IsLearner | IsEducator]
+    def get_permissions(self):
+        from rest_framework.permissions import IsAuthenticated
+
+        return [IsAuthenticated()]
 
     def get(self, request):
         from adminpanel.models import Level
+
+        if getattr(request.user, "role", None) not in ("learner", "educator"):
+            return Response({"detail": "Not allowed."}, status=403)
 
         levels = []
         for lv in Level.objects.filter(is_active=True):
@@ -287,5 +296,3 @@ class EducatorScreeningView(APIView):
                 }
             )
         return Response({"levels": levels})
-
-    
