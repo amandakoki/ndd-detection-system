@@ -84,6 +84,14 @@ class Classification(models.Model):
         help_text="Percentage, 0 to 100",
     )
     classified_on = models.DateField(default=timezone.localdate)
+    probability = models.FloatField(
+        null=True, blank=True, help_text="Raw model probability, 0 to 1"
+    )
+    game_log = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Clicks, hits and misses for each level played",
+    )
     support = models.JSONField(
         default=list,
         blank=True,
