@@ -222,3 +222,47 @@ class LinkAccountView(APIView):
             {"detail": "Only learner and guardian accounts can use a code."},
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    # ------------------------------------------------------------- screenings
+class LearnerScreeningView(APIView):
+    """A learner's own game session sends its log here.
+    The child never sees the result, only a confirmation."""
+
+    permission_classes = [IsLearner]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "screening"
+
+    def post(self, request):
+        learner = Learner.objects.filter(user=request.user).first()
+        if learner is None:
+            return Response(
+                {"detail": "Your account isn't connected to a learner yet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = ScreeningSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        levels = [dict(level) for level in serializer.validated_data["levels"]]
+        try:
+            run_screening(learner, levels)
+        except ScreeningError as exc:
+            return Response({"detail": str(exc)}, status=exc.status_code)
+        return Response({"detail": "Screening saved."}, status=status.HTTP_201_CREATED)
+
+
+class EducatorScreeningView(APIView):
+    """An educator submits a game log for one of their own learners."""
+
+    permission_classes = [IsEducator]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "screening"
+
+    def post(self, request, pk):
+        learner = get_object_or_404(Learner, pk=pk, educator=request.user)
+        serializer = ScreeningSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        levels = [dict(level) for level in serializer.validated_data["levels"]]
+        try:
+            run_screening(learner, levels)
+        except ScreeningError as exc:
+            return Response({"detail": str(exc)}, status=exc.status_code)
+        return Response(learner_payload(learner), status=status.HTTP_201_CREATED)
