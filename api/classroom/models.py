@@ -141,13 +141,21 @@ class Activity(models.Model):
         help_text="Where the activity opens. Leave blank if it isn't available yet.",
     )
     is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_activities",
+        limit_choices_to={"role": "educator"},
+        help_text="The educator who created it. Blank means shared with every educator.",
+    )
 
     class Meta:
         verbose_name_plural = "activities"
 
     def __str__(self):
         return self.title
-
 
 class ActivityAssignment(models.Model):
     learner = models.ForeignKey(
