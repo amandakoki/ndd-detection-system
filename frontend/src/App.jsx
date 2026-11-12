@@ -47,6 +47,22 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+                <Route
+          path="/learner/play"
+          element={
+            <ProtectedRoute role="learner">
+              <ScreeningGame />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/educator/screen/:learnerId"
+          element={
+            <ProtectedRoute role="educator">
+              <ScreeningGame />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/system-admin"
           element={
