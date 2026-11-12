@@ -358,6 +358,31 @@ export default function EducatorDashboard() {
                   <p className="muted">This is a screening indicator, not a diagnosis.</p>
                 </>
               )}
+                          <section className="panel">
+              <h2>Classification Result{selected ? ` — ${selected.name}` : ""}</h2>
+              {!selected && <Empty>No learner selected.</Empty>}
+              {selected && !result && (
+                <Empty>No classification result for this learner yet.</Empty>
+              )}
+              {result && (
+                <>
+                  <p className="result-main">
+                    Risk Level:{" "}
+                    <span className={`risk risk-${String(result.risk).toLowerCase()}`}>
+                      {result.risk}
+                    </span>
+                  </p>
+                  <p className="result-line">Screening score: {result.confidence} out of 100</p>
+                  <p className="muted">Classified: {formatDate(result.classified_on)}</p>
+                  <p className="muted">A screening indication, not a diagnosis.</p>
+                </>
+              )}
+              {selected && (
+                <Link className="btn run-screening" to={`/educator/screen/${selected.id}`}>
+                  Run screening
+                </Link>
+              )}
+            </section>
             </section>
 
             <section className="panel">
